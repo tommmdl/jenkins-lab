@@ -2,81 +2,68 @@
 
 English | [Português](README.md)
 
-Local Jenkins lab with persistent storage and a versioned declarative pipeline.
+Jenkins lab with automated configuration and reproducible builds.
 
-**Status:** scripts checked locally; controller startup and execution inside Jenkins have not been validated yet.
+## Run the environment
 
-## Architecture and scope
-
-Browser → `127.0.0.1:8080` → Jenkins controller → `jenkins_home` volume.
-
-This introductory lab runs lightweight tasks on the controller. Use dedicated agents in production. The official `jenkins/jenkins:lts-jdk21` image follows LTS updates; pin a digest after validating a version for exact reproducibility. No Docker socket mount or cloud access is required.
-
-## Prerequisites
-
-Running Docker Engine, Compose v2, Git, Bash and available port 8080. Initial downloads require internet. On Windows, use WSL with Docker integration configured.
-
-## Start
-
-Run from this repository root:
+Prerequisites: Linux/WSL, Docker Engine accessible to your user, Bash, Python 3, curl and available port 8080. Automatic local Compose installation supports Linux x86_64; install the official plugin beforehand on other architectures.
 
 ```bash
-docker compose up -d
-docker compose logs --tail=100 jenkins
+bash scripts/prepare.sh
+bash scripts/compose.sh up -d --build
 ```
 
-Open http://localhost:8080. Retrieve the initial password **only in your terminal**:
+Preparation preserves existing passwords and installs Compose 5.6.0 locally with SHA-256 verification only when the plugin is missing. Local files and secrets are ignored by Git and excluded from the Docker build context.
+
+Open http://localhost:8080. Username: `admin`. Read the password only in your terminal:
 
 ```bash
-docker compose exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+cat .local/admin-password
 ```
 
-Never commit the password or add it to the journal. Finish the setup wizard, install suggested plugins and create your administrator account. Confirm Pipeline, Git and Timestamper are installed under Manage Jenkins → Plugins.
+Bootstrap creates the administrator and `jenkins-lab` job, replacing the interactive setup wizard. The volume preserves accounts, jobs and history. Changing the password file does not rotate an existing account.
 
-## Run the pipeline
+## Architecture
 
-1. Create a **Pipeline** item.
-2. Select **Pipeline script from SCM**, then **Git**.
-3. After publication, set repository URL to `https://github.com/tommmdl/jenkins-lab.git`.
-4. Use branch `*/main` and Script Path `Jenkinsfile`.
-5. Select **Build Now**. After the first run, use **Build with Parameters** to enable `SIMULATE_FAILURE`.
+Browser → `127.0.0.1:8080` → Jenkins → persistent volume. The image derives from Jenkins LTS with Java 21 and installs Pipeline, Git and Timestamper. An initialization hook enables authentication, denies anonymous access and creates a job using public SCM on branch `main`.
 
-Public repository checkout does not require a token. SCM execution requires the repository to be published first.
+This lab runs lightweight tasks on the controller with one executor. Use dedicated agents in production. No Docker socket mount or cloud access. The LTS image and plugins follow updates; the validation report records actual versions, but build dependencies are not all pinned yet.
 
-## Verification and learning
+## Success and failure builds
 
-- Normal path: validation and report stages pass; build ends SUCCESS and archives `artifacts/report.txt`.
-- `SIMULATE_FAILURE=true`: build ends FAILURE while retaining the report artifact.
-- Workspace cleanup runs after archiving. Up to ten builds are retained.
-- `docker compose down` followed by `up -d` should preserve the user and job in the volume.
+Open `jenkins-lab` and select **Build Now**. Afterward, **Build with Parameters** exposes `SIMULATE_FAILURE`. The normal path validates Bash, generates a report and archives it. The failure drill performs those steps and deliberately fails while preserving the report. Workspace cleanup follows archiving; up to ten builds are retained.
 
-Check the script independently:
+Run both scenarios automatically:
 
 ```bash
-bash -n scripts/build.sh
-bash scripts/build.sh
+python3 scripts/verify-builds.py
 ```
 
-Record a successful and a failed Jenkins build, reviewed logs, stage explanations and limitations. These results are still pending.
+The verifier uses authentication and a CSRF crumb, follows the queue and asserts both expected results and archived artifacts. Logs and metadata are saved under `.local/evidence/`. Run while Jenkins is idle: a first build without history uses defaults; subsequent builds pass explicit parameters.
+
+## Evidence
+
+See [actual results](docs/validation.en.md) and [reviewed logs](evidence/). Published evidence excludes credentials.
 
 ## Troubleshooting
 
-- Docker permission denied: check daemon access and WSL integration.
-- Port in use: change the host port only, retaining the `127.0.0.1` binding.
-- Unknown `timestamps`: install Timestamper.
-- Checkout error: verify repository publication, URL, branch and container connectivity.
-- Startup failure: inspect logs; initial startup and plugin downloads may take time.
+- Docker permission denied: check daemon access and WSL integration. Do not make the socket world-accessible. This managed environment required authorized Docker commands outside the sandbox.
+- Compose missing: run `prepare.sh`, then use `compose.sh`.
+- Port busy: update the host port and verifier URL, preserving localhost binding.
+- Checkout failure: verify container connectivity and public `main` branch access.
+- Startup failure: `bash scripts/compose.sh logs --tail=100 jenkins`.
 
 ## Cleanup
 
 ```bash
-docker compose down
+bash scripts/compose.sh down
 ```
 
-The volume is preserved. **`docker compose down -v` permanently deletes this lab's jobs, users and configuration.** Run it only to discard the environment. Delete local reports manually when no longer needed.
+Preserves the volume. **`bash scripts/compose.sh down -v` permanently deletes lab accounts, jobs and history.** Use only to discard the environment. Local `.local/` files remain and can be removed separately when no longer needed.
 
 ## References
 
-- [Official Docker installation](https://www.jenkins.io/doc/book/installing/docker/)
-- [First Pipeline](https://www.jenkins.io/doc/pipeline/tour/hello-world/)
+- [Jenkins Docker installation](https://www.jenkins.io/doc/book/installing/docker/)
+- [Groovy initialization hooks](https://www.jenkins.io/doc/book/managing/groovy-hook-scripts/)
+- [Official Compose plugin installation](https://docs.docker.com/compose/install/linux/)
 - [Portfolio](https://github.com/tommmdl/devops-portfolio)

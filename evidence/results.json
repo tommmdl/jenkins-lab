@@ -1,0 +1,28 @@
+[
+  {
+    "number": 1,
+    "result": "SUCCESS",
+    "duration": 13263,
+    "timestamp": 1792262728433,
+    "artifacts": [
+      {
+        "displayPath": "report.txt",
+        "fileName": "report.txt",
+        "relativePath": "artifacts/report.txt"
+      }
+    ]
+  },
+  {
+    "number": 2,
+    "result": "FAILURE",
+    "duration": 4827,
+    "timestamp": 1792262748433,
+    "artifacts": [
+      {
+        "displayPath": "report.txt",
+        "fileName": "report.txt",
+        "relativePath": "artifacts/report.txt"
+      }
+    ]
+  }
+]

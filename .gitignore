@@ -3,3 +3,6 @@ artifacts/
 .env.*
 *.key
 *.pem
+.local/
+
+__pycache__/

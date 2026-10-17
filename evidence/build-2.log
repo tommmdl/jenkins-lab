@@ -1,0 +1,89 @@
+Started by user admin
+Checking out git https://github.com/tommmdl/jenkins-lab.git into /var/jenkins_home/workspace/jenkins-lab@script/f4bad5940a05689487c8889f61cfd80f157d8064875444146deb604f146fe1cc to read Jenkinsfile
+The recommended git tool is: NONE
+No credentials specified
+ > git rev-parse --resolve-git-dir /var/jenkins_home/workspace/jenkins-lab@script/f4bad5940a05689487c8889f61cfd80f157d8064875444146deb604f146fe1cc/.git # timeout=10
+Fetching changes from the remote Git repository
+ > git config remote.origin.url https://github.com/tommmdl/jenkins-lab.git # timeout=10
+Fetching upstream changes from https://github.com/tommmdl/jenkins-lab.git
+ > git --version # timeout=10
+ > git --version # 'git version 2.47.3'
+ > git fetch --tags --force --progress -- https://github.com/tommmdl/jenkins-lab.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+ > git rev-parse refs/remotes/origin/main^{commit} # timeout=10
+Checking out Revision 1b55f5d210dd7c00425fe7d0d8165d315e0ae5a1 (refs/remotes/origin/main)
+ > git config core.sparsecheckout # timeout=10
+ > git checkout -f 1b55f5d210dd7c00425fe7d0d8165d315e0ae5a1 # timeout=10
+Commit message: "Initial bilingual DevOps portfolio and lab documentation"
+ > git rev-list --no-walk 1b55f5d210dd7c00425fe7d0d8165d315e0ae5a1 # timeout=10
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on Jenkins in /var/jenkins_home/workspace/jenkins-lab
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Declarative: Checkout SCM)
+[Pipeline] checkout
+The recommended git tool is: NONE
+No credentials specified
+Cloning the remote Git repository
+Cloning repository https://github.com/tommmdl/jenkins-lab.git
+ > git init /var/jenkins_home/workspace/jenkins-lab # timeout=10
+Fetching upstream changes from https://github.com/tommmdl/jenkins-lab.git
+ > git --version # timeout=10
+ > git --version # 'git version 2.47.3'
+ > git fetch --tags --force --progress -- https://github.com/tommmdl/jenkins-lab.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+ > git config remote.origin.url https://github.com/tommmdl/jenkins-lab.git # timeout=10
+ > git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/* # timeout=10
+Avoid second fetch
+ > git rev-parse refs/remotes/origin/main^{commit} # timeout=10
+Checking out Revision 1b55f5d210dd7c00425fe7d0d8165d315e0ae5a1 (refs/remotes/origin/main)
+ > git config core.sparsecheckout # timeout=10
+ > git checkout -f 1b55f5d210dd7c00425fe7d0d8165d315e0ae5a1 # timeout=10
+Commit message: "Initial bilingual DevOps portfolio and lab documentation"
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] timestamps
+[Pipeline] {
+[Pipeline] timeout
+[2026-10-17T18:45:51.118Z] Timeout set to expire in 5 min 0 sec
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Validate)
+[Pipeline] sh
+[2026-10-17T18:45:51.537Z] + bash -n scripts/build.sh
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Build report)
+[Pipeline] sh
+[2026-10-17T18:45:52.007Z] + bash scripts/build.sh
+[2026-10-17T18:45:52.007Z] Jenkins lab build report
+[2026-10-17T18:45:52.007Z] UTC: 2026-10-17T18:45:51Z
+[2026-10-17T18:45:52.007Z] Build: 2
+[2026-10-17T18:45:52.007Z] Commit: 1b55f5d210dd7c00425fe7d0d8165d315e0ae5a1
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Failure drill)
+[Pipeline] error
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Declarative: Post Actions)
+[Pipeline] archiveArtifacts
+[2026-10-17T18:45:52.554Z] Archiving artifacts
+[Pipeline] deleteDir
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // timeout
+[Pipeline] }
+[Pipeline] // timestamps
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+ERROR: Intentional failure drill / Falha intencional
+Finished: FAILURE

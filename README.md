@@ -2,81 +2,68 @@
 
 [English](README.en.md) | Português
 
-Laboratório local de Jenkins com persistência e pipeline declarativo versionado.
+Laboratório Jenkins com configuração automatizada e builds reproduzíveis.
 
-**Status:** scripts verificados localmente; execução do controller e do pipeline Jenkins ainda não validada.
+## Executar o ambiente
 
-## Arquitetura e escopo
-
-Navegador → `127.0.0.1:8080` → controller Jenkins → volume `jenkins_home`.
-
-Este primeiro exercício executa tarefas leves no controller para simplificar o ambiente local. Em produção, utilize agentes dedicados. A imagem oficial `jenkins/jenkins:lts-jdk21` acompanha atualizações LTS; fixe um digest após validar uma versão para obter reprodução exata. Sem Docker socket montado e sem acesso cloud.
-
-## Pré-requisitos
-
-Docker Engine em execução, Compose v2, Git, Bash e porta 8080 disponível. O primeiro download exige internet. No Windows, use WSL com integração Docker configurada.
-
-## Subir o ambiente
-
-Execute da raiz deste repositório:
+Pré-requisitos: Linux/WSL, Docker Engine acessível ao usuário, Bash, Python 3, curl e porta 8080 disponível. A instalação local automática do Compose suporta Linux x86_64; em outras arquiteturas, instale o plugin oficial previamente.
 
 ```bash
-docker compose up -d
-docker compose logs --tail=100 jenkins
+bash scripts/prepare.sh
+bash scripts/compose.sh up -d --build
 ```
 
-Abra http://localhost:8080 e obtenha a senha inicial **somente no seu terminal**:
+O primeiro comando preserva senhas existentes e instala o Compose 5.6.0 localmente, com verificação SHA-256, somente se o plugin estiver ausente. Arquivos locais e segredos são ignorados pelo Git e excluídos do contexto Docker.
+
+Abra http://localhost:8080. Usuário: `admin`. Consulte a senha somente no seu terminal:
 
 ```bash
-docker compose exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+cat .local/admin-password
 ```
 
-Não salve essa senha no Git ou no diário. Complete o assistente, instale os plugins sugeridos e crie seu administrador. Confirme os plugins Pipeline, Git e Timestamper; instale os ausentes em Manage Jenkins → Plugins.
+O bootstrap cria o administrador e o job `jenkins-lab`; não é necessário executar o assistente de instalação. O volume preserva contas, jobs e histórico. Alterar o arquivo de senha não rotaciona uma conta já criada.
 
-## Executar o pipeline
+## Arquitetura
 
-1. Crie um item do tipo **Pipeline**.
-2. Em Definition, escolha **Pipeline script from SCM**, SCM **Git**.
-3. Informe a URL pública deste repositório após a publicação: `https://github.com/tommmdl/jenkins-lab.git`.
-4. Use a branch `*/main` e Script Path `Jenkinsfile`.
-5. Execute **Build Now**. Após a primeira execução, use **Build with Parameters** para marcar `SIMULATE_FAILURE`.
+Navegador → `127.0.0.1:8080` → Jenkins → volume persistente. A imagem deriva de Jenkins LTS com Java 21 e instala Pipeline, Git e Timestamper. Um script de inicialização configura autenticação, bloqueia acesso anônimo e cria o job com SCM público e branch `main`.
 
-O checkout de um repositório público não requer token. Antes de publicar, é possível testar criando um item com Pipeline script e colando o Jenkinsfile, mas nesse caso é necessário disponibilizar também `scripts/build.sh` no workspace; prefira validar via SCM após a publicação.
+Este laboratório executa tarefas leves no controller com um executor. Em produção, use agentes dedicados. Não há montagem do socket Docker ou acesso cloud. A imagem LTS e os plugins acompanham atualizações; o relatório registra as versões reais da execução, mas os arquivos de build ainda não fixam todas as dependências.
 
-## Verificação e aprendizado
+## Builds de sucesso e falha
 
-- Fluxo normal: etapas de validação e relatório passam; o build termina SUCCESS e arquiva `artifacts/report.txt`.
-- `SIMULATE_FAILURE=true`: o build termina FAILURE e preserva o relatório como artefato.
-- O workspace é limpo depois do arquivamento; o histórico retém até dez builds.
-- `docker compose down` seguido de `up -d` deve preservar o usuário e o job no volume.
+Abra o job `jenkins-lab` e clique em **Build Now**. Depois, **Build with Parameters** permite ativar `SIMULATE_FAILURE`. O fluxo normal valida o Bash, gera um relatório e arquiva o artefato. O cenário de falha executa essas etapas e falha intencionalmente; o relatório também é preservado. O workspace é limpo após o arquivamento, e até dez builds são retidos.
 
-Valide o script independentemente do Jenkins:
+Para executar e verificar os dois cenários automaticamente:
 
 ```bash
-bash -n scripts/build.sh
-bash scripts/build.sh
+python3 scripts/verify-builds.py
 ```
 
-Registre no diário um build de sucesso e um de falha, com logs revisados, explicação das etapas e limitações. Esses resultados ainda estão pendentes.
+O verificador usa autenticação e crumb CSRF, acompanha a fila e valida o resultado esperado e o artefato de cada build. Logs e metadados são salvos em `.local/evidence/`. Execute com o Jenkins ocioso: a primeira execução sem histórico usa os parâmetros padrão; execuções seguintes usam os parâmetros explícitos.
+
+## Evidências
+
+Veja [resultados reais](docs/validation.md) e [logs revisados](evidence/). Credenciais não fazem parte das evidências publicadas.
 
 ## Troubleshooting
 
-- Permission denied ao acessar Docker: confirme acesso do usuário ao daemon e a integração WSL.
-- Porta ocupada: altere apenas a porta do host no Compose, mantendo o vínculo a `127.0.0.1`.
-- `timestamps` desconhecido: instale Timestamper.
-- Falha de checkout: confirme publicação, URL, branch e conectividade do container.
-- Falha de inicialização: consulte os logs; o primeiro boot e download de plugins podem demorar.
+- Docker permission denied: verifique acesso ao daemon e a integração WSL. Não torne o socket acessível a todos. Neste ambiente gerenciado, comandos Docker exigiram execução autorizada fora do sandbox.
+- Compose ausente: execute `prepare.sh` e use o wrapper `compose.sh`.
+- Porta ocupada: ajuste a porta do host e a URL no verificador, mantendo o vínculo a localhost.
+- Falha de checkout: confira conectividade do container e acesso à branch `main` pública.
+- Falha de startup: `bash scripts/compose.sh logs --tail=100 jenkins`.
 
 ## Limpeza
 
 ```bash
-docker compose down
+bash scripts/compose.sh down
 ```
 
-Isso preserva o volume. **`docker compose down -v` apaga permanentemente jobs, usuários e configurações deste laboratório.** Execute apenas quando quiser descartar o ambiente. Remova relatórios locais manualmente quando não forem mais necessários.
+Preserva o volume. **`bash scripts/compose.sh down -v` apaga permanentemente contas, jobs e histórico deste laboratório.** Só execute para descartar o ambiente. Os arquivos `.local/` permanecem locais e podem ser removidos separadamente quando não forem mais necessários.
 
 ## Referências
 
-- [Instalação oficial com Docker](https://www.jenkins.io/doc/book/installing/docker/)
-- [Primeiro Pipeline](https://www.jenkins.io/doc/pipeline/tour/hello-world/)
+- [Instalação Jenkins com Docker](https://www.jenkins.io/doc/book/installing/docker/)
+- [Hooks Groovy de inicialização](https://www.jenkins.io/doc/book/managing/groovy-hook-scripts/)
+- [Instalação oficial do plugin Compose](https://docs.docker.com/compose/install/linux/)
 - [Portfólio](https://github.com/tommmdl/devops-portfolio)
