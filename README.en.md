@@ -1,69 +1,47 @@
-# Jenkins Lab
+# Jenkins: from the first pipeline to a failed build
 
-English | [Português](README.md)
+English · [Português](README.md)
 
-Jenkins lab with automated configuration and reproducible builds.
+What happens between clicking **Build Now** and getting a result? This lab is a place to follow that path: watch the stages run, find an error in the logs and see what remains after a build.
 
-## Run the environment
+The environment starts with a ready-to-use job. A parameter introduces a deliberate failure, making it easier to compare both runs without changing the code.
 
-Prerequisites: Linux/WSL, Docker Engine accessible to your user, Bash, Python 3, curl and available port 8080. Automatic local Compose installation supports Linux x86_64; install the official plugin beforehand on other architectures.
+## Getting started
+
+Linux/WSL, Docker, Bash, Python 3, curl and an available port 8080. The preparation script can install Compose locally on Linux x86_64.
+
+From the repository root:
 
 ```bash
 bash scripts/prepare.sh
 bash scripts/compose.sh up -d --build
 ```
 
-Preparation preserves existing passwords and installs Compose 5.6.0 locally with SHA-256 verification only when the plugin is missing. Local files and secrets are ignored by Git and excluded from the Docker build context.
+Open http://localhost:8080. The username is `admin`; read the password in your terminal with `cat .local/admin-password`. It stays out of Git.
 
-Open http://localhost:8080. Username: `admin`. Read the password only in your terminal:
+## Things to try
 
-```bash
-cat .local/admin-password
-```
+1. Run the `jenkins-lab` job and follow its stages.
+2. Enable `SIMULATE_FAILURE` on the next run.
+3. Compare the logs and download the report archived by each build.
+4. Recreate the container and check that the job and history are still there.
 
-Bootstrap creates the administrator and `jenkins-lab` job, replacing the interactive setup wizard. The volume preserves accounts, jobs and history. Changing the password file does not rotate an existing account.
+## What has been tested
 
-## Architecture
+The initial builds finished with SUCCESS and FAILURE as expected. Both retained their report, and the history survived container recreation.
 
-Browser → `127.0.0.1:8080` → Jenkins → persistent volume. The image derives from Jenkins LTS with Java 21 and installs Pipeline, Git and Timestamper. An initialization hook enables authentication, denies anonymous access and creates a job using public SCM on branch `main`.
+The [results and their limits](docs/validation.en.md) include execution details and evidence. They refer to the revisions recorded in those reports.
 
-This lab runs lightweight tasks on the controller with one executor. Use dedicated agents in production. No Docker socket mount or cloud access. The LTS image and plugins follow updates; the validation report records actual versions, but build dependencies are not all pinned yet.
-
-## Success and failure builds
-
-Open `jenkins-lab` and select **Build Now**. Afterward, **Build with Parameters** exposes `SIMULATE_FAILURE`. The normal path validates Bash, generates a report and archives it. The failure drill performs those steps and deliberately fails while preserving the report. Workspace cleanup follows archiving; up to ten builds are retained.
-
-Run both scenarios automatically:
-
-```bash
-python3 scripts/verify-builds.py
-```
-
-The verifier uses authentication and a CSRF crumb, follows the queue and asserts both expected results and archived artifacts. Logs and metadata are saved under `.local/evidence/`. Run while Jenkins is idle: a first build without history uses defaults; subsequent builds pass explicit parameters.
-
-## Evidence
-
-See [actual results](docs/validation.en.md) and [reviewed logs](evidence/). Published evidence excludes credentials.
-
-## Troubleshooting
-
-- Docker permission denied: check daemon access and WSL integration. Do not make the socket world-accessible. This managed environment required authorized Docker commands outside the sandbox.
-- Compose missing: run `prepare.sh`, then use `compose.sh`.
-- Port busy: update the host port and verifier URL, preserving localhost binding.
-- Checkout failure: verify container connectivity and public `main` branch access.
-- Startup failure: `bash scripts/compose.sh logs --tail=100 jenkins`.
-
-## Cleanup
+## When you are done
 
 ```bash
 bash scripts/compose.sh down
 ```
 
-Preserves the volume. **`bash scripts/compose.sh down -v` permanently deletes lab accounts, jobs and history.** Use only to discard the environment. Local `.local/` files remain and can be removed separately when no longer needed.
+This keeps the volume. Adding `-v` deletes accounts, jobs and history. Tasks run on the controller to keep this exercise simple; a production environment needs dedicated agents.
 
-## References
+## A closer look
 
-- [Jenkins Docker installation](https://www.jenkins.io/doc/book/installing/docker/)
-- [Groovy initialization hooks](https://www.jenkins.io/doc/book/managing/groovy-hook-scripts/)
-- [Official Compose plugin installation](https://docs.docker.com/compose/install/linux/)
-- [Portfolio](https://github.com/tommmdl/devops-portfolio)
+The [usage guide](docs/guide.en.md) covers architecture, configuration, tests, limitations and troubleshooting. The [portfolio](https://github.com/tommmdl/devops-portfolio) connects this project to the other labs.
+
+[About the history update](docs/history.md)
